@@ -2,6 +2,7 @@ package trab;
 
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -11,15 +12,21 @@ public class Main {
             return;
         }
 
+        final List<NodeFile> files = List.of(
+                new NodeFile("arquivo.txt", "C:\\caminho", "hash")
+        );
+
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         boolean isSuperNode = Boolean.parseBoolean(args[2]);
 
         Node node = new Node(host, port, isSuperNode);
 
-        Scanner sc = new Scanner(System.in);
+        node.registerNode(node, files);
 
         if (!isSuperNode) {
+            Scanner sc = new Scanner(System.in);
+
             //requisitar dados de conexao do super node...
             System.out.println("Informe o host do supernode: ");
             String superHost = sc.next();
@@ -27,15 +34,18 @@ public class Main {
             System.out.println("Informe o port do supernode:");
             int superPort = sc.nextInt();
 
-            node.setSuperNode(new Node(superHost, superPort, false));
-
-            DatagramSocket supernode = new DatagramSocket(port);
-
-
+            node.connectToSuper(superHost, superPort);
         }
 
-        if(node.isSuperNode()){
 
+        if (node.isSuperNode()) {
+            while (true) {
+
+            }
+        } else {
+            while (true) {
+
+            }
         }
 
 

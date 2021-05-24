@@ -1,5 +1,9 @@
 package trab;
 
+import javax.xml.crypto.Data;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,9 +14,13 @@ public class Node {
     private boolean isSuperNode;
 
     private Node superNode;
-    private List<Node> nodes;
 
-    private HashMap<String, List<NodeFile>> nodeFiles;
+    private List<Node> nodes;
+    private HashMap<String, List<NodeFile>> superNodeFiles;
+
+    private List<NodeFile> localNodeFiles;
+
+    private DatagramSocket connectionSocket;
 
     public Node(String host, int port, boolean isSuperNode) {
         this.host = host;
@@ -21,33 +29,33 @@ public class Node {
 
         if (this.isSuperNode) {
             this.nodes = new ArrayList<>();
-            this.nodeFiles = new HashMap<>();
+            this.superNodeFiles = new HashMap<>();
+
+        } else {
+            this.localNodeFiles = new ArrayList<>();
         }
     }
 
-    //SUPERNODE METHODS
-    private void registerFiles(String host, List<NodeFile> files){
-        this.nodeFiles.put(host, files);
+    public void registerNode(Node node, List<NodeFile> files) throws SocketException {
+        if (!node.isSuperNode()) {
+            localNodeFiles = files;
+        }
+
+        this.host = node.host;
+        this.port = node.port;
+        this.isSuperNode = node.isSuperNode;
+
+        connectionSocket = new DatagramSocket(port);
     }
 
 
+    public void connectToSuper(String host, int port) throws SocketException {
+        this.superNode = new Node(host, port, true);
 
-    //NODE METHODS
+        this.superNode.connectionSocket = new DatagramSocket(port);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        //testar se conectou direito
+    }
 
     public String getHost() {
         return host;
@@ -89,11 +97,27 @@ public class Node {
         this.nodes = nodes;
     }
 
-    public HashMap<String, List<NodeFile>> getNodeFiles() {
-        return nodeFiles;
+    public HashMap<String, List<NodeFile>> getSuperNodeFiles() {
+        return superNodeFiles;
     }
 
-    public void setNodeFiles(HashMap<String, List<NodeFile>> nodeFiles) {
-        this.nodeFiles = nodeFiles;
+    public void setSuperNodeFiles(HashMap<String, List<NodeFile>> superNodeFiles) {
+        this.superNodeFiles = superNodeFiles;
+    }
+
+    public List<NodeFile> getLocalNodeFiles() {
+        return localNodeFiles;
+    }
+
+    public void setLocalNodeFiles(List<NodeFile> localNodeFiles) {
+        this.localNodeFiles = localNodeFiles;
+    }
+
+    public DatagramSocket getConnectionSocket() {
+        return connectionSocket;
+    }
+
+    public void setConnectionSocket(DatagramSocket connectionSocket) {
+        this.connectionSocket = connectionSocket;
     }
 }

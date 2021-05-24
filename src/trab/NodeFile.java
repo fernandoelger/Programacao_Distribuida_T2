@@ -1,6 +1,15 @@
 package trab;
 
 public class NodeFile {
+    public NodeFile() {
+    }
+
+    public NodeFile(String name, String path, String hash) {
+        this.name = name;
+        this.path = path;
+        this.hash = hash;
+    }
+
     private String name;
     private String path;
     private String hash;
