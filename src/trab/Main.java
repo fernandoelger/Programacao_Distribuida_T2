@@ -24,6 +24,7 @@ public class Main {
 
         node.registerNode(node, files);
 
+        //conectar com o super nodo
         if (!isSuperNode) {
             Scanner sc = new Scanner(System.in);
 

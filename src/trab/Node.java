@@ -13,9 +13,10 @@ public class Node {
     private int port;
     private boolean isSuperNode;
 
-    private Node superNode;
+    private String superNodeHost;
+    private int superNodePort;
 
-    private List<Node> nodes;
+    //private List<Node> nodes;
     private HashMap<String, List<NodeFile>> superNodeFiles;
 
     private List<NodeFile> localNodeFiles;
@@ -28,7 +29,7 @@ public class Node {
         this.isSuperNode = isSuperNode;
 
         if (this.isSuperNode) {
-            this.nodes = new ArrayList<>();
+            //this.nodes = new ArrayList<>();
             this.superNodeFiles = new HashMap<>();
 
         } else {
@@ -50,12 +51,17 @@ public class Node {
 
 
     public void connectToSuper(String host, int port) throws SocketException {
-        this.superNode = new Node(host, port, true);
-
-        this.superNode.connectionSocket = new DatagramSocket(port);
-
+        this.superNodeHost = host;
+        this.superNodePort = port;
         //testar se conectou direito
+
+		byte[] saida = new byte[1024];
+		saida = ().getBytes();
+		DatagramPacket pacote = new DatagramPacket(saida, saida.length, grupo, 5000);
+		socket.send(pacote);
     }
+
+
 
     public String getHost() {
         return host;
@@ -81,21 +87,13 @@ public class Node {
         isSuperNode = superNode;
     }
 
-    public Node getSuperNode() {
-        return superNode;
-    }
+    // public List<Node> getNodes() {
+    //     return nodes;
+    // }
 
-    public void setSuperNode(Node superNode) {
-        this.superNode = superNode;
-    }
-
-    public List<Node> getNodes() {
-        return nodes;
-    }
-
-    public void setNodes(List<Node> nodes) {
-        this.nodes = nodes;
-    }
+    // public void setNodes(List<Node> nodes) {
+    //     this.nodes = nodes;
+    // }
 
     public HashMap<String, List<NodeFile>> getSuperNodeFiles() {
         return superNodeFiles;
