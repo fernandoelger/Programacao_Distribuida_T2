@@ -11,14 +11,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-//        if (args.length != 3) {
-//            System.out.println("Uso: java Nodos <host> <port> <is super node>");
-//            return;
-//        }
-//
-//        String host = args[0];
-//        int port = Integer.parseInt(args[1]);
-//        boolean isSuperNode = Boolean.parseBoolean(args[2]);
+        if (args.length != 3) {
+            System.out.println("Uso: java Nodos <host> <port> <is super node>");
+            return;
+        }
+
+        String host = args[0];
+        int port = Integer.parseInt(args[1]);
+        boolean isSuperNode = Boolean.parseBoolean(args[2]);
 
         BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 
@@ -28,9 +28,9 @@ public class Main {
         final String REGISTER = "REGISTER";
         final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
 
-        String host = "localhost";
-        int port = 8085;
-        boolean isSuperNode = true;
+//        String host = "localhost";
+//        int port = 8085;
+//        boolean isSuperNode = true;
 
         Node node = new Node(host, port, isSuperNode);
 
