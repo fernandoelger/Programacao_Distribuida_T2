@@ -51,10 +51,10 @@ public class Main {
 
             //requisitar dados de conexao do super node...
             System.out.println("Informe o host do supernode: ");
-            String superHost = "localhost";//sc.next();
+            String superHost = input.readLine();
 
             System.out.println("Informe o port do supernode:");
-            int superPort = 8085;
+            int superPort = Integer.parseInt(input.readLine());
             //int superPort = Integer.parseInt(input.readLine());
 
             node.connectToSuper(superHost, superPort);
