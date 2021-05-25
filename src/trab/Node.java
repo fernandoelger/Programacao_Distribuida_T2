@@ -58,7 +58,7 @@ public class Node extends Thread {
 
                     String resposta = new String(pacote.getData(), 0, pacote.getLength());
 
-                    String[] request = resposta.split(" - ");
+                    String[] request = resposta.split(" -- ");
 
                     String operation = request[0];
                     String parameters = request[1];
@@ -71,7 +71,7 @@ public class Node extends Thread {
                                     .findFirst()
                                     .orElseThrow(() -> new RuntimeException("Algum erro de comunicação aconteceu no caminho, nodo recebeu request de arquivo mas não tem esse arquivo"));
 
-                            bytesPacote = ("RETURN_FILE_HASH - " +file.getHash()).getBytes();
+                            bytesPacote = ("RETURN_FILE_HASH -- " + file.getHash()).getBytes();
 
                             pacote = new DatagramPacket(bytesPacote, bytesPacote.length, pacote.getAddress(), pacote.getPort());
 
@@ -90,9 +90,8 @@ public class Node extends Thread {
         }
     }
 
-    public void registerNode(Node node, List<NodeFile> files) throws IOException {
+    public void registerNode(Node node) throws IOException {
         if (!node.isSuperNode) {
-            localNodeFiles = files;
 
             int peerPort = node.port + 1;
 
@@ -123,9 +122,11 @@ public class Node extends Thread {
         //testar se conectou direito
 
         long timestamp = System.currentTimeMillis();
-        byte[] saida;
+        byte[] saida = new byte[4096];
         //saida = (Long.toString(timestamp) + " - REGISTER - lista de arquivos").getBytes();
-        saida = ("REGISTER - lista de arquivos").getBytes();
+
+        String stringList = getListString();
+        saida = ("REGISTER -- " + stringList).getBytes();
 
         DatagramPacket packet = new DatagramPacket(saida, saida.length, InetAddress.getByName(host), port);
         connectionSocket.send(packet);
@@ -136,12 +137,30 @@ public class Node extends Thread {
             for (NodeFile file : entry.getValue()) {
                 if (file.getName().equals(fileName)) {
                     //achou o arquivo, retorna a connection string do nodo que tem o arquivo solicitado
-                    return "FILE_FOUND - " + entry.getKey();
+                    return "FILE_FOUND -- " + entry.getKey();
                 }
             }
         }
 
-        return "FILE_NOT_FOUND - NOT_FOUND";
+        return "FILE_NOT_FOUND -- NOT_FOUND";
+    }
+
+    private String getListString() {
+        //StringBuilder builder = new StringBuilder();
+        String teste = "";
+
+        for (NodeFile file : this.localNodeFiles) {
+            teste = teste.concat(file.getName() + "---" + file.getPath() + "---" + file.getHash() + "|");
+
+            //            builder.append(file.getName())
+//                    .append("---")
+//                    .append(file.getPath())
+//                    .append("---")
+//                    .append(file.getHash())
+//                    .append("|");
+        }
+
+        return teste;
     }
 
 }

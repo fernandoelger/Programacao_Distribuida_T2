@@ -1,10 +1,13 @@
 package trab;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -12,26 +15,15 @@ public class Main {
 //            System.out.println("Uso: java Nodos <host> <port> <is super node>");
 //            return;
 //        }
-
-        final List<NodeFile> listaFiles1 = List.of(
-                new NodeFile("arquivo.txt", "C:\\caminho", "hash1"),
-                new NodeFile("outro_arquivo.txt", "C:\\caminho", "hash2")
-        );
-
-        final List<NodeFile> listaFiles2 = List.of(
-                new NodeFile("arquivooo.txt", "C:\\caminho", "hash3"),
-                new NodeFile("outro_arquivooo.txt", "C:\\caminho", "hash4")
-        );
 //
 //        String host = args[0];
 //        int port = Integer.parseInt(args[1]);
 //        boolean isSuperNode = Boolean.parseBoolean(args[2]);
 
-        Scanner sc = new Scanner(System.in);
+        BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 
         byte[] bytesPacote = new byte[4096];
         DatagramPacket packet;
-
 
         final String REGISTER = "REGISTER";
         final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
@@ -42,12 +34,20 @@ public class Main {
 
         Node node = new Node(host, port, isSuperNode);
 
-        node.registerNode(node, listaFiles1);
+        node.registerNode(node);
 
         System.out.println("Nodo registrado com sucesso, host: " + host + " port: " + port + " super nodo? " + isSuperNode);
 
         //conectar com o super nodo
         if (!isSuperNode) {
+
+            System.out.println("Informe o caminho da pasta com arquivos: ");
+            String folderPath = System.getProperty("user.dir") + "/files/" + input.readLine();
+
+            File folder = new File(folderPath);
+            File[] files = folder.listFiles();
+
+            node.localNodeFiles = getFiles(files);
 
             //requisitar dados de conexao do super node...
             System.out.println("Informe o host do supernode: ");
@@ -73,7 +73,7 @@ public class Main {
 
                 String receivedString = new String(packet.getData(), 0, packet.getLength());
 
-                String[] request = receivedString.split(" - ");
+                String[] request = receivedString.split(" -- ");
 
                 //long actual_time = Long.parseLong(request[0]);
                 String operation = request[0];
@@ -81,18 +81,11 @@ public class Main {
 
                 switch (operation) {
                     case REGISTER:
-                        //List<NodeFile> fodase = Collections.emptyList();
-                        List<NodeFile> fodase;
-                        if (i == 0) {
-                            fodase = listaFiles1;
-                            i++;
-                        } else {
-                            fodase = listaFiles2;
-                        }
-
                         //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
 
-                        node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), fodase);
+                        List<NodeFile> files = parseList(parameters);
+
+                        node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), files);
 
                         System.out.println("node registrado com sucesso");
 
@@ -130,16 +123,16 @@ public class Main {
                 System.out.println("1 - Buscar arquivo por nome");
                 //todo.........
 
-                command = sc.nextInt();
+                command = Integer.parseInt(input.readLine());
 
                 switch (command) {
                     case 1:
                         System.out.println("Digite o nome do arquivo: ");
-                        String fileName = "arquivooo.txt";//sc.nextLine();
+                        String fileName = input.readLine();
 
                         long timestamp = System.currentTimeMillis();
                         //bytesPacote = (Long.toString(timestamp) + " - " + GET_HOST_WITH_FILE + " - " + fileName).getBytes();
-                        bytesPacote = (GET_HOST_WITH_FILE + " - " + fileName).getBytes();
+                        bytesPacote = (GET_HOST_WITH_FILE + " -- " + fileName).getBytes();
 
                         packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(node.superNodeHost), node.superNodePort);
 
@@ -147,13 +140,11 @@ public class Main {
 
                         node.connectionSocket.send(packet);
 
-                        System.out.println("qual o timeout dessa merda? " + node.connectionSocket.getSoTimeout());
-
                         node.connectionSocket.receive(packet);
 
                         String receivedString = new String(packet.getData(), 0, packet.getLength());
 
-                        String[] request = receivedString.split(" - ");
+                        String[] request = receivedString.split(" -- ");
 
                         // request[0] é o timestamp
                         String operation = request[0];
@@ -165,9 +156,9 @@ public class Main {
 
                             timestamp = System.currentTimeMillis();
 
-                            bytesPacote = ("GET_FILE - " + fileName).getBytes();
+                            bytesPacote = ("GET_FILE -- " + fileName).getBytes();
 
-                            packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(hostInfo[0]), Integer.parseInt(hostInfo[1]));
+                            packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(hostInfo[0]), Integer.parseInt(hostInfo[1]) + 1);
 
                             node.peerSocket.send(packet);
 
@@ -187,5 +178,33 @@ public class Main {
         }
 
 
+    }
+
+    private static List<NodeFile> parseList(String listString) {
+        String[] objects = listString.split("\\|");
+
+        List<NodeFile> files = new ArrayList<>();
+
+        for (int i = 0; i < objects.length; i++) {
+            String[] split = objects[i].split("---");
+
+            files.add(new NodeFile(split[0], split[1], split[2]));
+        }
+
+        return files;
+    }
+
+    public static List<NodeFile> getFiles(File[] filesArray){
+        List<NodeFile> files = new ArrayList<>();
+
+        for (File file : filesArray) {
+            files.add(new NodeFile(file.getName(), file.getPath(),
+
+                    //deve ser o hash do arquivo
+                    String.valueOf(ThreadLocalRandom.current().nextInt(10000, 100000))
+            ));
+        }
+
+        return files;
     }
 }
