@@ -6,6 +6,7 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Node {
     public String host;
@@ -52,7 +53,6 @@ public class Node {
         superNodeFiles.put(host + ":" + port, files);
     }
 
-
     public void connectToSuper(String host, int port) throws IOException {
         this.superNodeHost = host;
         this.superNodePort = port;
@@ -64,8 +64,17 @@ public class Node {
         connectionSocket.send(packet);
     }
 
-    public String getFileByName(String fileName) {
-        return null;
+    public String getFileHostByName(String fileName) {
+        for (Map.Entry<String, List<NodeFile>> entry : superNodeFiles.entrySet()) {
+            for (NodeFile file : entry.getValue()) {
+                if(file.getName().equals(fileName)){
+                    //achou o arquivo, retorna a connection string do nodo que tem o arquivo solicitado
+                    return "FILE_FOUND - " + entry.getKey();
+                }
+            }
+        }
+
+        return "FILE_NOT_FOUND - NOT_FOUND";
     }
 
 }

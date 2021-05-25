@@ -14,7 +14,8 @@ public class Main {
         }
 
         final List<NodeFile> files = List.of(
-                new NodeFile("arquivo.txt", "C:\\caminho", "hash")
+                new NodeFile("arquivo.txt", "C:\\caminho", "hash"),
+                new NodeFile("outro_arquivo.txt", "C:\\caminho", "hash")
         );
 
         String host = args[0];
@@ -25,6 +26,10 @@ public class Main {
 
         byte[] bytesPacote = new byte[4096];
         DatagramPacket packet;
+
+
+        final String REGISTER = "REGISTER";
+        final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
 
 //        String host = "localhost";
 //        int port = 8085;
@@ -59,22 +64,30 @@ public class Main {
 
                 String receivedString = new String(packet.getData(), 0, packet.getLength());
 
-                String[] request = receivedString.split("-");
+                String[] request = receivedString.split(" - ");
 
                 String operation = request[0];
                 String parameters = request[1];
 
                 switch (operation) {
-                    case "REGISTER":
-                        List<NodeFile> fodase = Collections.emptyList();
+                    case REGISTER:
+                        //List<NodeFile> fodase = Collections.emptyList();
+                        List<NodeFile> fodase = files;
 
                         //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
 
                         node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), fodase);
                         break;
 
-                    case "GET_FILE_BY_NAME":
-                        node.getFileByName(parameters);
+                    case GET_HOST_WITH_FILE:
+                        //parameters contém o nome do arquivo solicitado
+                        String response = node.getFileHostByName(parameters);
+
+                        bytesPacote = (response).getBytes();
+
+                        packet = new DatagramPacket(bytesPacote, bytesPacote.length, packet.getAddress(), packet.getPort());
+
+                        node.connectionSocket.send(packet);
                         break;
                 }
             }
@@ -90,14 +103,46 @@ public class Main {
 
                 command = sc.nextInt();
 
-                switch(command){
+                switch (command) {
                     case 1:
-                        bytesPacote = ("GET_FILE_BY_NAME").getBytes();
+                        System.out.println("Digite o nome do arquivo: ");
+                        String fileName = "outro_arquivo.txt";//sc.nextLine();
+
+                        bytesPacote = (GET_HOST_WITH_FILE + " - " + fileName).getBytes();
 
                         packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(node.superNodeHost), node.superNodePort);
+
+                        System.out.println("Enviando request de busca por nome do arquivo...");
+
                         node.connectionSocket.send(packet);
 
-                        //receber pacote resposta
+                        node.connectionSocket.receive(packet);
+
+                        String receivedString = new String(packet.getData(), 0, packet.getLength());
+
+                        String[] request = receivedString.split(" - ");
+
+                        String operation = request[0];
+                        String parameters = request[1];
+
+                        if (operation.equals("FILE_FOUND")) {
+                            //ip:port
+                            String[] hostInfo = parameters.split(":");
+
+                            bytesPacote = ("GET_FILE - " + fileName).getBytes();
+
+                            packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(hostInfo[0]), Integer.parseInt(hostInfo[1]));
+
+                            node.connectionSocket.send(packet);
+
+                            //P2P?
+
+                        } else if (operation.equals("FILE_NOT_FOUND")) {
+                            System.out.println("Arquivo não encontrado! tente outro nome de arquivo");
+                            continue;
+                        } else {
+                            throw new RuntimeException("Não sei que comando é esse não");
+                        }
 
                         break;
                 }
