@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.net.MulticastSocket;
 
-public class Node {
+public class Node extends Thread {
     public String host;
     public int port;
     public boolean isSuperNode;
@@ -23,9 +23,11 @@ public class Node {
 
     public DatagramSocket connectionSocket;
 
+    public DatagramSocket peerSocket;
+
     public MulticastSocket connectionMulticastSocket;
 
-    public String multicastGroup = "172.168.0.1";
+    public String multicastGroup = "localhost";
 
     public int multicastPort = 5000;
 
@@ -42,13 +44,65 @@ public class Node {
         }
     }
 
-    public void registerNode(Node node, List<NodeFile> files) throws SocketException, IOException {
+    @Override
+    public void run() {
+        if (!isSuperNode) {
+            while (true) {
+                try {
+                    // obtem a resposta
+                    byte[] bytesPacote = new byte[4096];
+
+                    DatagramPacket pacote = new DatagramPacket(bytesPacote, bytesPacote.length);
+                    peerSocket.setSoTimeout(500);
+                    peerSocket.receive(pacote);
+
+                    String resposta = new String(pacote.getData(), 0, pacote.getLength());
+
+                    String[] request = resposta.split(" - ");
+
+                    String operation = request[0];
+                    String parameters = request[1];
+
+                    switch (operation) {
+                        case "GET_FILE":
+                            NodeFile file = this.localNodeFiles
+                                    .stream()
+                                    .filter(nodeFile -> nodeFile.getName().equals(parameters))
+                                    .findFirst()
+                                    .orElseThrow(() -> new RuntimeException("Algum erro de comunicação aconteceu no caminho, nodo recebeu request de arquivo mas não tem esse arquivo"));
+
+                            bytesPacote = ("RETURN_FILE_HASH - " +file.getHash()).getBytes();
+
+                            pacote = new DatagramPacket(bytesPacote, bytesPacote.length, pacote.getAddress(), pacote.getPort());
+
+                            peerSocket.send(pacote);
+
+                            break;
+
+                        case "RETURN_FILE_HASH":
+                            System.out.println("Arquivo recebido com sucesso!! hash dele é:" + parameters);
+                            break;
+                    }
+                } catch (IOException ex) {
+                    //System.out.print(".");
+                }
+            }
+        }
+    }
+
+    public void registerNode(Node node, List<NodeFile> files) throws IOException {
         if (!node.isSuperNode) {
             localNodeFiles = files;
+
+            int peerPort = node.port + 1;
+
+            System.out.println("Adicionando peer socket na porta " + peerPort);
+
+            peerSocket = new DatagramSocket(peerPort);
         } else {
             connectionMulticastSocket = new MulticastSocket(multicastPort);
-            InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
-		    connectionMulticastSocket.joinGroup(grupo);
+//            InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
+//		    connectionMulticastSocket.joinGroup(grupo);
         }
 
         this.host = node.host;
@@ -70,7 +124,9 @@ public class Node {
 
         long timestamp = System.currentTimeMillis();
         byte[] saida;
-        saida = (Long.toString(timestamp) + " - REGISTER - lista de arquivos").getBytes();
+        //saida = (Long.toString(timestamp) + " - REGISTER - lista de arquivos").getBytes();
+        saida = ("REGISTER - lista de arquivos").getBytes();
+
         DatagramPacket packet = new DatagramPacket(saida, saida.length, InetAddress.getByName(host), port);
         connectionSocket.send(packet);
     }
@@ -78,7 +134,7 @@ public class Node {
     public String getFileHostByName(String fileName) {
         for (Map.Entry<String, List<NodeFile>> entry : superNodeFiles.entrySet()) {
             for (NodeFile file : entry.getValue()) {
-                if(file.getName().equals(fileName)){
+                if (file.getName().equals(fileName)) {
                     //achou o arquivo, retorna a connection string do nodo que tem o arquivo solicitado
                     return "FILE_FOUND - " + entry.getKey();
                 }
