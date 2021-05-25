@@ -27,9 +27,9 @@ public class Node extends Thread {
 
     public MulticastSocket connectionMulticastSocket;
 
-    public String multicastGroup = "localhost";
+    public String multicastGroup = "224.0.2.1";
 
-    public int multicastPort = 5000;
+    public int multicastPort = 22355;
 
     public Node(String host, int port, boolean isSuperNode) {
         this.host = host;
@@ -60,8 +60,8 @@ public class Node extends Thread {
 
                     String[] request = resposta.split(" -- ");
 
-                    String operation = request[0];
-                    String parameters = request[1];
+                    String operation = request[1];
+                    String parameters = request[2];
 
                     switch (operation) {
                         case "GET_FILE":
@@ -71,7 +71,9 @@ public class Node extends Thread {
                                     .findFirst()
                                     .orElseThrow(() -> new RuntimeException("Algum erro de comunicação aconteceu no caminho, nodo recebeu request de arquivo mas não tem esse arquivo"));
 
-                            bytesPacote = ("RETURN_FILE_HASH -- " + file.getHash()).getBytes();
+                            long timestamp = System.currentTimeMillis();
+
+                            bytesPacote = (Long.toString(timestamp) + " -- RETURN_FILE_HASH -- " + file.getHash()).getBytes();
 
                             pacote = new DatagramPacket(bytesPacote, bytesPacote.length, pacote.getAddress(), pacote.getPort());
 
@@ -82,6 +84,41 @@ public class Node extends Thread {
                         case "RETURN_FILE_HASH":
                             System.out.println("Arquivo recebido com sucesso!! hash dele é:" + parameters);
                             break;
+                    }
+                } catch (IOException ex) {
+                    //System.out.print(".");
+                }
+            }
+        } else {
+            long last_time = 0;
+            long actual_time;
+
+            while (true) {
+                try {
+                    // obtem a resposta do multicast
+                    byte[] bytesPacote = new byte[1024];
+
+                    DatagramPacket multicastPacket = new DatagramPacket(bytesPacote, bytesPacote.length);
+                    connectionMulticastSocket.setSoTimeout(500);
+                    connectionMulticastSocket.receive(multicastPacket);
+
+                    String receivedString = new String(multicastPacket.getData(), 0, multicastPacket.getLength());
+                    String[] request = receivedString.split(" -- ");
+
+                    actual_time = Long.parseLong(request[0]);
+
+                    if (actual_time == last_time) {
+                        System.out.println("old: " + receivedString);
+                    } else {
+                        System.out.println("new: " + receivedString);
+                        last_time = actual_time;
+
+                        // envia nova mensagem para o multicast
+                        byte[] saida = new byte[1024];
+                        saida = receivedString.getBytes();
+                        InetAddress group = InetAddress.getByName(multicastGroup);
+                        multicastPacket = new DatagramPacket(saida, saida.length, group, multicastPort);
+                        connectionMulticastSocket.send(multicastPacket);
                     }
                 } catch (IOException ex) {
                     //System.out.print(".");
@@ -100,8 +137,8 @@ public class Node extends Thread {
             peerSocket = new DatagramSocket(peerPort);
         } else {
             connectionMulticastSocket = new MulticastSocket(multicastPort);
-//            InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
-//		    connectionMulticastSocket.joinGroup(grupo);
+            InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
+ 		    connectionMulticastSocket.joinGroup(grupo);
         }
 
         this.host = node.host;
@@ -119,14 +156,13 @@ public class Node extends Thread {
     public void connectToSuper(String host, int port) throws IOException {
         this.superNodeHost = host;
         this.superNodePort = port;
-        //testar se conectou direito
 
         long timestamp = System.currentTimeMillis();
         byte[] saida = new byte[4096];
-        //saida = (Long.toString(timestamp) + " - REGISTER - lista de arquivos").getBytes();
 
         String stringList = getListString();
-        saida = ("REGISTER -- " + stringList).getBytes();
+
+        saida = (Long.toString(timestamp) + " -- REGISTER -- " + stringList).getBytes();
 
         DatagramPacket packet = new DatagramPacket(saida, saida.length, InetAddress.getByName(host), port);
         connectionSocket.send(packet);
