@@ -31,9 +31,9 @@ public class Main {
         final String REGISTER = "REGISTER";
         final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
 
-//        String host = "localhost";
-//        int port = 8085;
-//        boolean isSuperNode = true;
+    //    String host = "localhost";
+    //    int port = 8085;
+    //    boolean isSuperNode = true;
 
         Node node = new Node(host, port, isSuperNode);
 
@@ -58,6 +58,8 @@ public class Main {
         if (node.isSuperNode) {
             System.out.println("entrou no loop supernodo");
 
+            long last_time = 0;
+
             while (true) {
                 packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(node.superNodeHost), node.superNodePort);
                 node.connectionSocket.receive(packet);
@@ -66,24 +68,42 @@ public class Main {
 
                 String[] request = receivedString.split(" - ");
 
-                String operation = request[0];
-                String parameters = request[1];
+                long actual_time = Long.parseLong(request[0]);
+                String operation = request[1];
+                String parameters = request[2];
 
                 switch (operation) {
                     case REGISTER:
-                        //List<NodeFile> fodase = Collections.emptyList();
-                        List<NodeFile> fodase = files;
+                        // verifica se esta mensagem já foi recebida
+                        if (actual_time == last_time) {
+                            System.out.println("old: " + receivedString);
+                        } else {
+                            System.out.println("new: " + receivedString);
+                            last_time = actual_time;
 
-                        //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
+                            //List<NodeFile> fodase = Collections.emptyList();
+                            List<NodeFile> fodase = files;
 
-                        node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), fodase);
+                            //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
+
+                            node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), fodase);
+    
+                            // envia nova mensagem para o multicast
+                            byte[] saida = new byte[1024];
+                            saida = receivedString.getBytes();
+                            InetAddress group = InetAddress.getByName(node.multicastGroup);
+                            DatagramPacket multicastPacket = new DatagramPacket(saida, saida.length, group, node.multicastPort);
+                            node.connectionMulticastSocket.send(multicastPacket);
+                        }
                         break;
 
                     case GET_HOST_WITH_FILE:
                         //parameters contém o nome do arquivo solicitado
                         String response = node.getFileHostByName(parameters);
 
-                        bytesPacote = (response).getBytes();
+                        long timestamp = System.currentTimeMillis();
+
+                        bytesPacote = (timestamp + " - " + response).getBytes();
 
                         packet = new DatagramPacket(bytesPacote, bytesPacote.length, packet.getAddress(), packet.getPort());
 
@@ -108,7 +128,8 @@ public class Main {
                         System.out.println("Digite o nome do arquivo: ");
                         String fileName = "outro_arquivo.txt";//sc.nextLine();
 
-                        bytesPacote = (GET_HOST_WITH_FILE + " - " + fileName).getBytes();
+                        long timestamp = System.currentTimeMillis();
+                        bytesPacote = (Long.toString(timestamp) + " - " + GET_HOST_WITH_FILE + " - " + fileName).getBytes();
 
                         packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(node.superNodeHost), node.superNodePort);
 
@@ -122,14 +143,17 @@ public class Main {
 
                         String[] request = receivedString.split(" - ");
 
-                        String operation = request[0];
-                        String parameters = request[1];
+                        // request[0] é o timestamp
+                        String operation = request[1];
+                        String parameters = request[2];
 
                         if (operation.equals("FILE_FOUND")) {
                             //ip:port
                             String[] hostInfo = parameters.split(":");
 
-                            bytesPacote = ("GET_FILE - " + fileName).getBytes();
+                            timestamp = System.currentTimeMillis();
+
+                            bytesPacote = (timestamp + " - GET_FILE - " + fileName).getBytes();
 
                             packet = new DatagramPacket(bytesPacote, bytesPacote.length, InetAddress.getByName(hostInfo[0]), Integer.parseInt(hostInfo[1]));
 

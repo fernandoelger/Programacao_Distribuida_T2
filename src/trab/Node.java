@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.MulticastSocket;
 
 public class Node {
     public String host;
@@ -22,13 +23,18 @@ public class Node {
 
     public DatagramSocket connectionSocket;
 
+    public MulticastSocket connectionMulticastSocket;
+
+    public String multicastGroup = "172.168.0.1";
+
+    public int multicastPort = 5000;
+
     public Node(String host, int port, boolean isSuperNode) {
         this.host = host;
         this.port = port;
         this.isSuperNode = isSuperNode;
 
         if (this.isSuperNode) {
-            //this.nodes = new ArrayList<>();
             this.superNodeFiles = new HashMap<>();
 
         } else {
@@ -36,9 +42,13 @@ public class Node {
         }
     }
 
-    public void registerNode(Node node, List<NodeFile> files) throws SocketException {
+    public void registerNode(Node node, List<NodeFile> files) throws SocketException, IOException {
         if (!node.isSuperNode) {
             localNodeFiles = files;
+        } else {
+            connectionMulticastSocket = new MulticastSocket(multicastPort);
+            InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
+		    connectionMulticastSocket.joinGroup(grupo);
         }
 
         this.host = node.host;
@@ -58,8 +68,9 @@ public class Node {
         this.superNodePort = port;
         //testar se conectou direito
 
+        long timestamp = System.currentTimeMillis();
         byte[] saida;
-        saida = ("REGISTER - lista de arquivos").getBytes();
+        saida = (Long.toString(timestamp) + " - REGISTER - lista de arquivos").getBytes();
         DatagramPacket packet = new DatagramPacket(saida, saida.length, InetAddress.getByName(host), port);
         connectionSocket.send(packet);
     }
