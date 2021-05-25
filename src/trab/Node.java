@@ -31,6 +31,10 @@ public class Node extends Thread {
 
     public int multicastPort = 22355;
 
+    public HeartBeat heartBeat;
+
+    public HashMap<String, Integer> heartBeatMonitor;
+
     public Node(String host, int port, boolean isSuperNode) {
         this.host = host;
         this.port = port;
@@ -135,6 +139,7 @@ public class Node extends Thread {
             System.out.println("Adicionando peer socket na porta " + peerPort);
 
             peerSocket = new DatagramSocket(peerPort);
+
         } else {
             connectionMulticastSocket = new MulticastSocket(multicastPort);
             InetAddress grupo = InetAddress.getByName(multicastGroup); // ip do grupo Multicast
@@ -147,6 +152,7 @@ public class Node extends Thread {
 
         connectionSocket = new DatagramSocket(port);
         connectionSocket.setSoTimeout(5000000);
+
     }
 
     public void saveNodeFiles(String host, int port, List<NodeFile> files) {
@@ -166,6 +172,10 @@ public class Node extends Thread {
 
         DatagramPacket packet = new DatagramPacket(saida, saida.length, InetAddress.getByName(host), port);
         connectionSocket.send(packet);
+
+        this.heartBeatMonitor = new HashMap<>();
+        this.heartBeat = new HeartBeat(this.host, this.port, connectionSocket, superNodeHost, superNodePort);
+        heartBeat.start();
     }
 
     public String getFileHostByName(String fileName) {
@@ -182,18 +192,10 @@ public class Node extends Thread {
     }
 
     private String getListString() {
-        //StringBuilder builder = new StringBuilder();
         String teste = "";
 
         for (NodeFile file : this.localNodeFiles) {
             teste = teste.concat(file.getName() + "---" + file.getPath() + "---" + file.getHash() + "|");
-
-            //            builder.append(file.getName())
-//                    .append("---")
-//                    .append(file.getPath())
-//                    .append("---")
-//                    .append(file.getHash())
-//                    .append("|");
         }
 
         return teste;

@@ -29,7 +29,7 @@ public class Main {
         final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
 
         String host = "localhost";
-        int port = 8081;
+        int port = 8085;
         boolean isSuperNode = true;
 
         Node node = new Node(host, port, isSuperNode);
@@ -108,6 +108,9 @@ public class Main {
 
                         node.connectionSocket.send(packet);
                         break;
+
+                    case "HEARTBEAT":
+                        System.out.println("heartbeat recebido! " + parameters);
                 }
             }
         } else {
