@@ -11,14 +11,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
-            System.out.println("Uso: java Nodos <host> <port> <is super node>");
-            return;
-        }
-
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        boolean isSuperNode = Boolean.parseBoolean(args[2]);
+//        if (args.length != 3) {
+//            System.out.println("Uso: java Nodos <host> <port> <is super node>");
+//            return;
+//        }
+//
+//        String host = args[0];
+//        int port = Integer.parseInt(args[1]);
+//        boolean isSuperNode = Boolean.parseBoolean(args[2]);
 
         BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 
@@ -28,9 +28,9 @@ public class Main {
         final String REGISTER = "REGISTER";
         final String GET_HOST_WITH_FILE = "GET_HOST_WITH_FILE";
 
-//        String host = "localhost";
-//        int port = 8085;
-//        boolean isSuperNode = true;
+        String host = "localhost";
+        int port = 17777;
+        boolean isSuperNode = true;
 
         Node node = new Node(host, port, isSuperNode);
 
@@ -51,10 +51,10 @@ public class Main {
 
             //requisitar dados de conexao do super node...
             System.out.println("Informe o host do supernode: ");
-            String superHost = input.readLine();
+            String superHost = host;
 
             System.out.println("Informe o port do supernode:");
-            int superPort = Integer.parseInt(input.readLine());
+            int superPort = port;
             //int superPort = Integer.parseInt(input.readLine());
 
             node.connectToSuper(superHost, superPort);
@@ -86,11 +86,6 @@ public class Main {
                         InetAddress group = InetAddress.getByName(node.multicastGroup);
                         DatagramPacket multicastPacket = new DatagramPacket(saida, saida.length, group, node.multicastPort);
                         node.connectionMulticastSocket.send(multicastPacket);
-
-                        //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
-                        List<NodeFile> files = parseList(parameters);
-
-                        node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), files);
 
                         System.out.println("node registrado com sucesso");
                         break;
@@ -179,19 +174,7 @@ public class Main {
 
     }
 
-    private static List<NodeFile> parseList(String listString) {
-        String[] objects = listString.split("\\|");
 
-        List<NodeFile> files = new ArrayList<>();
-
-        for (int i = 0; i < objects.length; i++) {
-            String[] split = objects[i].split("---");
-
-            files.add(new NodeFile(split[0], split[1], split[2]));
-        }
-
-        return files;
-    }
 
     public static List<NodeFile> getFiles(File[] filesArray){
         List<NodeFile> files = new ArrayList<>();
