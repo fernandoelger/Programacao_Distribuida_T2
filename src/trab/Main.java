@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -55,7 +54,6 @@ public class Main {
 
             System.out.println("Informe o port do supernode:");
             int superPort = Integer.parseInt(input.readLine());
-            //int superPort = Integer.parseInt(input.readLine());
 
             node.connectToSuper(superHost, superPort);
         }
@@ -87,11 +85,6 @@ public class Main {
                         DatagramPacket multicastPacket = new DatagramPacket(saida, saida.length, group, node.multicastPort);
                         node.connectionMulticastSocket.send(multicastPacket);
 
-                        //FAZER PARSE DE PARAMETERS E USAR A LISTA DE ARQUIVOS
-                        List<NodeFile> files = parseList(parameters);
-
-                        node.saveNodeFiles(packet.getAddress().getHostName(), packet.getPort(), files);
-
                         System.out.println("node registrado com sucesso");
                         break;
 
@@ -121,7 +114,6 @@ public class Main {
             while (true) {
                 System.out.println("Qual operação deseja fazer?");
                 System.out.println("1 - Buscar arquivo por nome");
-                //todo.........
 
                 command = Integer.parseInt(input.readLine());
 
@@ -172,25 +164,8 @@ public class Main {
 
                         break;
                 }
-
             }
         }
-
-
-    }
-
-    private static List<NodeFile> parseList(String listString) {
-        String[] objects = listString.split("\\|");
-
-        List<NodeFile> files = new ArrayList<>();
-
-        for (int i = 0; i < objects.length; i++) {
-            String[] split = objects[i].split("---");
-
-            files.add(new NodeFile(split[0], split[1], split[2]));
-        }
-
-        return files;
     }
 
     public static List<NodeFile> getFiles(File[] filesArray){
@@ -203,7 +178,6 @@ public class Main {
                     String.valueOf(ThreadLocalRandom.current().nextInt(10000, 100000))
             ));
         }
-
         return files;
     }
 }

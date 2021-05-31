@@ -1,6 +1,5 @@
 package trab;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
@@ -29,7 +28,7 @@ public class Node extends Thread {
 
     public String multicastGroup = "224.0.2.1";
 
-    public int multicastPort = 22355;
+    public int multicastPort = 5000;
 
     public HeartBeat heartBeat;
 
@@ -94,6 +93,7 @@ public class Node extends Thread {
                 }
             }
         } else {
+            
             long last_time = 0;
             long actual_time;
 
@@ -110,12 +110,18 @@ public class Node extends Thread {
                     String[] request = receivedString.split(" -- ");
 
                     actual_time = Long.parseLong(request[0]);
+                    String parameters = request[2];
 
                     if (actual_time == last_time) {
                         System.out.println("old: " + receivedString);
                     } else {
                         System.out.println("new: " + receivedString);
                         last_time = actual_time;
+
+                        // fazer parse dos parâmetros para formar a lista de arquivos
+                        List<NodeFile> files = parseList(parameters);
+
+                        saveNodeFiles(multicastPacket.getAddress().getHostName(), multicastPacket.getPort(), files);
 
                         // envia nova mensagem para o multicast
                         byte[] saida = new byte[1024];
@@ -199,6 +205,20 @@ public class Node extends Thread {
         }
 
         return teste;
+    }
+
+    private static List<NodeFile> parseList(String listString) {
+        String[] objects = listString.split("\\|");
+
+        List<NodeFile> files = new ArrayList<>();
+
+        for (int i = 0; i < objects.length; i++) {
+            String[] split = objects[i].split("---");
+
+            files.add(new NodeFile(split[0], split[1], split[2]));
+        }
+
+        return files;
     }
 
 }
